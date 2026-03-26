@@ -52,7 +52,7 @@ if(isset($_GET['success'])){
 <link rel="stylesheet" href="../assets/css/style.css">
 
 <div class="page-wrapper">
-    <div class="glass-card signup-form-card" style="max-width:450px; width:90%; padding:40px;">
+    <div class="glass-card signup-form-card" style="max-width:500px; width:90%; padding:40px;">
         
         <h2 class="logo-title">Join LOSBO</h2>
         <p class="slogan">Create your customer account</p>
@@ -63,10 +63,26 @@ if(isset($_GET['success'])){
             <input type="email" name="email" placeholder="Email" required>
             <input type="text" name="phone" placeholder="Phone Number">
 
+            <!-- NEW FIELDS -->
+            <select name="gender" required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <input type="text" name="language" placeholder="Preferred Language" required>
+
+            <input type="date" name="dob" required>
+
+            <input type="text" name="city" placeholder="City" required>
+            <input type="text" name="state" placeholder="State" required>
+            <input type="text" name="pincode" placeholder="Pincode" required>
+
+            <!-- PASSWORD -->
             <div style="position: relative; margin-bottom: 10px;">
                 <input type="password" id="password" name="password" placeholder="Password" required>
                 
-                <!-- Password requirements popup -->
                 <div id="password-popup" style="background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; padding:10px; border-radius:8px; font-size:0.8rem; margin-top:5px;">
                     <strong>Password must contain:</strong>
                     <ul style="padding-left:18px; margin:5px 0;">
@@ -105,7 +121,6 @@ const pwSpecial = document.getElementById('pw-special');
 passwordInput.addEventListener('input', () => {
     const val = passwordInput.value;
 
-    // Validate each requirement
     pwLength.style.color = val.length >= 8 ? '#00e676' : 'white';
     pwUpper.style.color = /[A-Z]/.test(val) ? '#00e676' : 'white';
     pwLower.style.color = /[a-z]/.test(val) ? '#00e676' : 'white';
