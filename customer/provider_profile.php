@@ -87,10 +87,12 @@ $total_reviews = $rating_data['total_reviews'] ?? 0;
         </div>
 
         <!-- 🔥 BIG CTA BUTTON -->
+        <div style="display:flex; justify-content:center;">
         <a href="book_appointment.php?provider_id=<?php echo $provider['provider_id']; ?>" 
            class="book-btn">
            🚀 Book Appointment
         </a>
+        </div>
 
     </div>
 </div>
