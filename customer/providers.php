@@ -116,7 +116,7 @@ if($result->num_rows == 0){
                 <!-- Button -->
                 <a href="provider_profile.php?provider_id=<?php echo $row['provider_id']; ?>" 
                    class="btn btn-secondary">
-                   View Profile
+                   View Profile f
                 </a>
 
             </div>
