@@ -1,6 +1,7 @@
 <?php
 include("../config/session_check.php");   // START SESSION + CHECK LOGIN
 include("../config/database.php");
+include_once("../config/notification.php");
 
 $user_id = $_SESSION['user_id'];
 
@@ -26,9 +27,30 @@ $user_id = $_SESSION['user_id'];
         <a href="categories.php">Categories</a>
         <a href="history.php">History</a>
         <a href="profile.php">Profile</a>
-        <span class="notify-wrapper" style="position: relative; display: inline-block; margin-right: 15px;">
-            <a href="notifications.php" style="font-size: 1.2rem; margin-right: 0;">🔔</a>
-        </span> 
+        <?php
+
+$unread = getUnreadCount($conn, $user_id, 'customer');
+?>
+
+<span class="notify-wrapper" style="position: relative; display: inline-block; margin-right: 15px;">
+    <a href="notifications.php" style="font-size: 1.2rem;">
+        🔔
+        <?php if($unread > 0): ?>
+            <span style="
+                position:absolute;
+                top:-5px;
+                right:-8px;
+                background:red;
+                color:white;
+                font-size:10px;
+                padding:2px 6px;
+                border-radius:50%;
+            ">
+                <?php echo $unread; ?>
+            </span>
+        <?php endif; ?>
+    </a>
+</span>
 
         <a href="../auth/logout.php" class="logout-link">Logout</a>
     </div>

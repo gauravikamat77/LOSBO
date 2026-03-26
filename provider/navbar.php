@@ -2,7 +2,7 @@
 
 include("../config/session_check.php");
 include("../config/database.php");
-
+include_once("../config/notification.php");
 // Ensure session_start() is called in your session_check or at the top of the page
 $user_id = $_SESSION['user_id'];
 
@@ -29,9 +29,30 @@ $user_id = $_SESSION['user_id'];
         <a href="schedule.php">Schedule</a>
         <a href="history.php">History</a>
         <a href="profile.php">Profile</a>
-        <span class="notify-wrapper" style="position: relative; display: inline-block; margin-right: 10px;">
-            <a href="notifications.php" style="font-size: 1.1rem; margin-right: 0;">🔔</a>
-        </span> 
+        <?php
+
+$unread = getUnreadCount($conn, $user_id, 'provider');
+?>
+
+<span class="notify-wrapper" style="position: relative; display: inline-block; margin-right: 10px;">
+    <a href="notifications.php" style="font-size: 1.1rem;">
+        🔔
+        <?php if($unread > 0): ?>
+            <span style="
+                position:absolute;
+                top:-5px;
+                right:-8px;
+                background:red;
+                color:white;
+                font-size:10px;
+                padding:2px 6px;
+                border-radius:50%;
+            ">
+                <?php echo $unread; ?>
+            </span>
+        <?php endif; ?>
+    </a>
+</span>
 
         <a href="../auth/logout.php" class="logout-link">Logout</a>
     </div>
