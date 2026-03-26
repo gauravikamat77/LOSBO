@@ -29,7 +29,7 @@ $customer = $result->fetch_assoc();
     <div class="glass-card" style="max-width: 550px; width: 95%; padding: 40px;">
         
         <div style="text-align: center; margin-bottom: 30px;">
-            <h2 style="margin: 0; color: white;">Edit Profile Here</h2>
+            <h2 style="margin: 0; color: white;">Edit Profile </h2>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Update your personal information and presence</p>
         </div>
 
