@@ -1,6 +1,8 @@
 <?php
 include("../config/session_check.php");
 include("../config/database.php");
+include("navbar.php"); 
+
 
 $user_id = $_SESSION['user_id'] ?? 0;
 
