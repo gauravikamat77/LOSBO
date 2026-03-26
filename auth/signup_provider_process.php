@@ -152,6 +152,7 @@ if ($error) {
     echo "
     <div id='popup' style='position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,128,0,0.9); color: white; padding: 15px 25px; border-radius: 12px; font-weight: bold; z-index: 9999; text-align:center;'>
         ✅ {$success}
+        <br>
         <button onclick=\"window.location.href='login.php'\" style='margin-top:10px; padding:8px 15px; background:#00e676; border:none; color:#020c1b; font-weight:bold; border-radius:5px; cursor:pointer;'>
             Go to Login
         </button>

@@ -26,14 +26,13 @@ $user_id = $_SESSION['user_id'];
         <a href="categories.php">Categories</a>
         <a href="history.php">History</a>
         <a href="profile.php">Profile</a>
-
-        <!-- <span class="notify-wrapper" style="position: relative; display: inline-block; margin-right: 15px;">
+        <span class="notify-wrapper" style="position: relative; display: inline-block; margin-right: 15px;">
             <a href="notifications.php" style="font-size: 1.2rem; margin-right: 0;">🔔</a>
             
             <?php if($unread > 0): ?>
                 <span class="nav-badge"><?php echo $unread; ?></span>
             <?php endif; ?>
-        </span> -->
+        </span> 
 
         <a href="../auth/logout.php" class="logout-link">Logout</a>
     </div>
