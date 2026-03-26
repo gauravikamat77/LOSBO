@@ -147,7 +147,7 @@ echo htmlspecialchars($provider['city']) . ", " .
 <div style="margin-top: 30px;">
 <a href="edit_profile.php" class="btn">Update Profile</a>
 <br><br>
-<a href="dashboard.php" style="opacity:0.6;">Back to Dashboard</a>
+<a href="dashboard.php" style="color:white;">Back to Dashboard</a>
 </div>
 
 </div>
