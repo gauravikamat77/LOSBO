@@ -2,29 +2,39 @@
 session_start();
 include("../config/database.php");
 
-// Initialize variables
+// Initialize popup messages
 $error = '';
 $success = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $service = $_POST['service'] ?? '';
     $other_service = trim($_POST['other_service'] ?? '');
     $password = $_POST['password'] ?? '';
-    $confirm = $_POST['confirm_password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
 
-    // 1️⃣ Required fields check
-    if (!$name || !$email || !$password || !$confirm || !$service) {
+    // NEW FIELDS
+    $gender = $_POST['gender'] ?? '';
+    $language = trim($_POST['language'] ?? '');
+    $dob = $_POST['dob'] ?? '';
+    $city = trim($_POST['city'] ?? '');
+    $state = trim($_POST['state'] ?? '');
+    $pincode = trim($_POST['pincode'] ?? '');
+
+    // VALIDATIONS
+    if (
+        !$name || !$email || !$password || !$confirm_password || !$service ||
+        !$gender || !$language || !$dob || !$city || !$state || !$pincode
+    ) {
         $error = "Please fill in all required fields.";
     }
-    // 2️⃣ Password match
-    elseif ($password !== $confirm) {
+    elseif ($password !== $confirm_password) {
         $error = "Passwords do not match.";
     }
-    // 3️⃣ Strong password validation
     else {
         $uppercase = preg_match('@[A-Z]@', $password);
         $lowercase = preg_match('@[a-z]@', $password);
@@ -32,54 +42,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $special   = preg_match('@[^\w]@', $password);
 
         if (strlen($password) < 8 || !$uppercase || !$lowercase || !$number || !$special) {
-            $error = "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character.";
+            $error = "Weak password format.";
         }
     }
 
-    // 4️⃣ Proceed if no errors
+    // Extra validations
     if (!$error) {
-        // Use typed service if "Other"
+        if (!preg_match('/^[0-9]{6}$/', $pincode)) {
+            $error = "Invalid pincode.";
+        }
+        if ($phone && !preg_match('/^[0-9]{10}$/', $phone)) {
+            $error = "Invalid phone number.";
+        }
+    }
+
+    // If valid → insert
+    if (!$error) {
+
         if ($service === "Other" && !empty($other_service)) {
             $service = $other_service;
         }
 
-        // Check if email exists
         $stmt = $conn->prepare("SELECT id FROM users WHERE email=?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $res = $stmt->get_result();
 
         if ($res->num_rows > 0) {
-            $error = "Email already exists. Please login or use another email.";
+            $error = "Email already exists.";
         } else {
-            // Insert service into categories table
-            $stmt_cat = $conn->prepare("INSERT IGNORE INTO categories(name) VALUES(?)");
-            $stmt_cat->bind_param("s", $service);
-            $stmt_cat->execute();
-            $stmt_cat->close();
 
-            // Hash password
-            $hashed = password_hash($password, PASSWORD_BCRYPT);
+            $hashed_password = password_hash($password, PASSWORD_BCRYPT);
+            $conn->begin_transaction();
 
-            // Insert user
-            $stmt_user = $conn->prepare("INSERT INTO users(name,email,password,phone,role) VALUES(?,?,?,?, 'provider')");
-            $stmt_user->bind_param("ssss", $name, $email, $hashed, $phone);
+            try {
+                // Category
+                $stmt_cat = $conn->prepare("INSERT IGNORE INTO categories(name) VALUES(?)");
+                $stmt_cat->bind_param("s", $service);
+                $stmt_cat->execute();
 
-            if ($stmt_user->execute()) {
+                // User
+                $stmt_user = $conn->prepare("
+                    INSERT INTO users
+                    (name,email,password,phone,role,gender,language,dob,city,state,pincode)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                ");
+
+                $role = 'provider';
+
+                $stmt_user->bind_param(
+                    "sssssssssss",
+                    $name,$email,$hashed_password,$phone,$role,
+                    $gender,$language,$dob,$city,$state,$pincode
+                );
+
+                $stmt_user->execute();
                 $user_id = $stmt_user->insert_id;
-                $stmt_user->close();
 
-                // Insert into providers table
+                // Provider
                 $stmt_provider = $conn->prepare("INSERT INTO providers(user_id,service_type) VALUES(?,?)");
                 $stmt_provider->bind_param("is", $user_id, $service);
-                if ($stmt_provider->execute()) {
-                    $success = "Account created successfully! You can now login.";
-                } else {
-                    $error = "Error creating provider record. Please try again.";
-                }
-                $stmt_provider->close();
-            } else {
-                $error = "Error creating account. Please try again.";
+                $stmt_provider->execute();
+
+                $conn->commit();
+                $success = "Account created successfully!";
+
+            } catch (Exception $e) {
+                $conn->rollback();
+                $error = "Something went wrong.";
             }
         }
     }
@@ -89,106 +119,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="../assets/css/style.css">
 
 <div class="page-wrapper">
-    <div class="glass-card signup-form-card">
-        
-        <h2 class="logo-title">Partner with LOSBO</h2>
-        <p class="slogan">Grow your business today</p>
+<div class="glass-card signup-form-card">
 
-        <?php if($error): ?>
-        <div id="popup" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,0,0,0.9); color: white; padding: 15px 25px; border-radius: 12px; font-weight: bold; z-index: 9999; box-shadow: 0 0 20px rgba(255,0,0,0.5);">
-            ❌ <?php echo $error; ?>
-        </div>
-        <script>
-            setTimeout(()=> { document.getElementById('popup').style.display='none'; }, 4000);
-        </script>
-        <?php elseif($success): ?>
-        <div id='popup-success' style='position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,128,0,0.9); color: white; padding: 15px 25px; border-radius: 12px; font-weight: bold; z-index: 9999; box-shadow: 0 0 20px rgba(0,128,0,0.5); text-align:center;'>
-            ✅ <?php echo $success; ?>
-            <a href="login.php" class="btn" style="display:block; margin-top:10px; padding:10px; background:#00e676; color:#020c1b; text-decoration:none; border-radius:5px;">Go to Login</a>
-        </div>
-        <script>
-            setTimeout(()=> { document.getElementById('popup-success').style.display='none'; }, 4000);
-        </script>
-        <?php endif; ?>
+<h2 class="logo-title">Partner with LOSBO</h2>
+<p class="slogan">Grow your business today</p>
 
-        <form action="" method="POST" class="form-group" enctype="multipart/form-data">
-            
-            <input type="text" name="name" placeholder="Full name" required>
-            <input type="email" name="email" placeholder="Email" required>
-            <input type="text" name="phone" placeholder="Phone Number">
+<?php if($error): ?>
+<div id="popup" style="position:fixed;top:20px;left:50%;transform:translateX(-50%);background:red;color:white;padding:15px;border-radius:10px;">
+❌ <?php echo $error; ?>
+</div>
+<?php elseif($success): ?>
+<div id='popup' style='position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,128,0,0.9); color: white; padding: 15px 25px; border-radius: 12px; font-weight: bold; z-index: 9999; box-shadow: 0 0 20px rgba(0,128,0,0.5); text-align:center;'>
+✅ <?php echo $success; ?>
+<a href="login.php" style='margin-top:10px; padding:8px 15px; background:#00e676; border:none; color:#020c1b; font-weight:bold; border-radius:5px; cursor:pointer;'>Login</a>
+</div>
+<?php endif; ?>
 
-            <select name="service" id="serviceSelect" onchange="checkOtherService()" required>
-                <option value="" disabled selected>Select Service</option>
-                <option value="Plumber">Plumber</option>
-                <option value="Electrician">Electrician</option>
-                <option value="Carpenter">Carpenter</option>
-                <option value="Cleaning">Cleaning</option>
-                <option value="Other">Other</option>
-            </select>
+<form method="POST" class="form-group">
 
-            <input type="text" name="other_service" id="otherServiceInput" 
-                   placeholder="Enter your service" 
-                   style="display:none; margin-top: 5px; border-color: var(--accent-blue);">
+<input type="text" name="name" placeholder="Full name" required>
+<input type="email" name="email" placeholder="Email" required>
+<input type="text" name="phone" placeholder="Phone">
 
-            <div style="position: relative; margin-bottom: 10px;">
-                <input type="password" id="password" name="password" placeholder="Password" required>
-                
-                <!-- Password requirements popup -->
-                <div id="password-popup" style="background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; padding:10px; border-radius:8px; font-size:0.8rem; margin-top:5px;">
-                    <strong>Password must contain:</strong>
-                    <ul style="padding-left:18px; margin:5px 0;">
-                        <li id="pw-length">At least 8 characters</li>
-                        <li id="pw-uppercase">1 uppercase letter (A-Z)</li>
-                        <li id="pw-lowercase">1 lowercase letter (a-z)</li>
-                        <li id="pw-number">1 number (0-9)</li>
-                        <li id="pw-special">1 special character (!@#$%^&*)</li>
-                    </ul>
-                </div>
-            </div>
+<select name="gender" required>
+<option value="">Gender</option>
+<option>Male</option>
+<option>Female</option>
+<option>Other</option>
+</select>
 
-            <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+<input type="text" name="language" placeholder="Language" required>
+<input type="date" name="dob" required>
+<input type="text" name="city" placeholder="City" required>
+<input type="text" name="state" placeholder="State" required>
+<input type="text" name="pincode" placeholder="Pincode" required>
 
-            <button class="btn" type="submit" style="margin-top: 15px;">
-                Create Provider Account
-            </button>
+<select name="service" id="serviceSelect" onchange="checkOtherService()" required>
+<option value="">Service</option>
+<option>Plumber</option>
+<option>Electrician</option>
+<option>Carpenter</option>
+<option>Cleaning</option>
+<option value="Other">Other</option>
+</select>
 
-            <div style="margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 0.9rem;">
-                Already a partner? <a href="login.php" class="link-blue" style="font-weight: bold;">Login</a>
-            </div>
-        </form>
+<input type="text" name="other_service" id="otherServiceInput" placeholder="Other service" style="display:none;">
 
-    </div>
+<!-- PASSWORD -->
+<input type="password" id="password" name="password" placeholder="Password" required>
+
+<div id="password-popup">
+<ul>
+<li id="pw-length">At least 8 characters</li>
+<li id="pw-uppercase">Uppercase letter</li>
+<li id="pw-lowercase">Lowercase letter</li>
+<li id="pw-number">Number</li>
+<li id="pw-special">Special character</li>
+</ul>
+</div>
+
+<input type="password" name="confirm_password" placeholder="Confirm Password" required>
+
+<button class="btn">Create Account</button>
+
+</form>
+</div>
 </div>
 
 <script>
-function checkOtherService(){
-    let service = document.getElementById("serviceSelect").value;
-    let otherInput = document.getElementById("otherServiceInput");
+// WAIT FOR DOM
+document.addEventListener("DOMContentLoaded", function(){
 
-    if(service === "Other"){
-        otherInput.style.display = "block";
-        otherInput.required = true; // Make it required if visible
+function checkOtherService(){
+    let val = document.getElementById("serviceSelect").value;
+    let input = document.getElementById("otherServiceInput");
+    if(val === "Other"){
+        input.style.display = "block";
+        input.required = true;
     } else {
-        otherInput.style.display = "none";
-        otherInput.required = false;
+        input.style.display = "none";
+        input.required = false;
     }
 }
+window.checkOtherService = checkOtherService;
 
-// Real-time password strength validation
+// PASSWORD VALIDATION
 const passwordInput = document.getElementById('password');
+
 const pwLength = document.getElementById('pw-length');
 const pwUpper = document.getElementById('pw-uppercase');
 const pwLower = document.getElementById('pw-lowercase');
 const pwNumber = document.getElementById('pw-number');
 const pwSpecial = document.getElementById('pw-special');
 
-passwordInput.addEventListener('input', () => {
-    const val = passwordInput.value;
+passwordInput.addEventListener('input', function(){
 
-    pwLength.style.color = val.length >= 8 ? '#00e676' : 'white';
-    pwUpper.style.color = /[A-Z]/.test(val) ? '#00e676' : 'white';
-    pwLower.style.color = /[a-z]/.test(val) ? '#00e676' : 'white';
-    pwNumber.style.color = /[0-9]/.test(val) ? '#00e676' : 'white';
-    pwSpecial.style.color = /[!@#$%^&*]/.test(val) ? '#00e676' : 'white';
+    let val = this.value;
+
+    pwLength.style.color = val.length >= 8 ? "#00e676" : "white";
+    pwUpper.style.color = /[A-Z]/.test(val) ? "#00e676" : "white";
+    pwLower.style.color = /[a-z]/.test(val) ? "#00e676" : "white";
+    pwNumber.style.color = /[0-9]/.test(val) ? "#00e676" : "white";
+    pwSpecial.style.color = /[!@#$%^&*]/.test(val) ? "#00e676" : "white";
+
+});
+
 });
 </script>

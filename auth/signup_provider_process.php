@@ -15,8 +15,19 @@ $other_service = trim($_POST['other_service'] ?? '');
 $password = $_POST['password'] ?? '';
 $confirm_password = $_POST['confirm_password'] ?? '';
 
+// NEW FIELDS
+$gender = $_POST['gender'] ?? '';
+$language = trim($_POST['language'] ?? '');
+$dob = $_POST['dob'] ?? '';
+$city = trim($_POST['city'] ?? '');
+$state = trim($_POST['state'] ?? '');
+$pincode = trim($_POST['pincode'] ?? '');
+
 // 1️⃣ Required fields check
-if (!$name || !$email || !$password || !$confirm_password || !$service) {
+if (
+    !$name || !$email || !$password || !$confirm_password || !$service ||
+    !$gender || !$language || !$dob || !$city || !$state || !$pincode
+) {
     $error = "Please fill in all required fields.";
 }
 
@@ -33,11 +44,25 @@ else {
     $special   = preg_match('@[^\w]@', $password);
 
     if (strlen($password) < 8 || !$uppercase || !$lowercase || !$number || !$special) {
-        $error = "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character.";
+        $error = "Password must be at least 8 characters and include uppercase, lowercase, number & special character.";
     }
 }
 
-// 4️⃣ Proceed if no errors
+// 4️⃣ Extra validations
+if (!$error) {
+
+    // Validate pincode (India 6-digit)
+    if (!preg_match('/^[0-9]{6}$/', $pincode)) {
+        $error = "Invalid pincode (must be 6 digits).";
+    }
+
+    // Validate phone (10-digit)
+    if ($phone && !preg_match('/^[0-9]{10}$/', $phone)) {
+        $error = "Invalid phone number (must be 10 digits).";
+    }
+}
+
+// 5️⃣ Proceed if no errors
 if (!$error) {
 
     // If 'Other' is chosen, use typed service
@@ -50,25 +75,48 @@ if (!$error) {
     $stmt_check->bind_param("s", $email);
     $stmt_check->execute();
     $res_check = $stmt_check->get_result();
+
     if ($res_check->num_rows > 0) {
         $error = "Email already exists. Please login or use another email.";
     } else {
+
         // Hash password
         $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 
-        // Begin transaction to prevent partial inserts
+        // Begin transaction
         $conn->begin_transaction();
 
         try {
-            // 1️⃣ Insert into categories (ignore duplicates)
+            // 1️⃣ Insert service into categories
             $stmt_cat = $conn->prepare("INSERT IGNORE INTO categories (name) VALUES (?)");
             $stmt_cat->bind_param("s", $service);
             $stmt_cat->execute();
             $stmt_cat->close();
 
-            // 2️⃣ Insert into users table
-            $stmt_user = $conn->prepare("INSERT INTO users (name,email,password,phone,role) VALUES (?,?,?,?, 'provider')");
-            $stmt_user->bind_param("ssss", $name, $email, $hashed_password, $phone);
+            // 2️⃣ Insert into users table (UPDATED)
+            $stmt_user = $conn->prepare("
+                INSERT INTO users 
+                (name,email,password,phone,role,gender,language,dob,city,state,pincode) 
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            ");
+
+            $role = 'provider';
+
+            $stmt_user->bind_param(
+                "sssssssssss",
+                $name,
+                $email,
+                $hashed_password,
+                $phone,
+                $role,
+                $gender,
+                $language,
+                $dob,
+                $city,
+                $state,
+                $pincode
+            );
+
             $stmt_user->execute();
             $user_id = $stmt_user->insert_id;
             $stmt_user->close();
@@ -90,19 +138,23 @@ if (!$error) {
     }
 }
 
-// 5️⃣ Display popups
+// 6️⃣ Display popups
 if ($error) {
     echo "
-    <div id='popup' style='position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,0,0,0.9); color: white; padding: 15px 25px; border-radius: 12px; font-weight: bold; z-index: 9999; box-shadow: 0 0 20px rgba(255,0,0,0.5);'>
+    <div id='popup' style='position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,0,0,0.9); color: white; padding: 15px 25px; border-radius: 12px; font-weight: bold; z-index: 9999;'>
         ❌ {$error}
     </div>
-    <script>setTimeout(()=>{document.getElementById('popup').style.display='none';}, 4000);</script>
+    <script>
+        setTimeout(()=>{document.getElementById('popup').style.display='none';}, 4000);
+    </script>
     ";
 } elseif ($success) {
     echo "
-    <div id='popup' style='position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,128,0,0.9); color: white; padding: 15px 25px; border-radius: 12px; font-weight: bold; z-index: 9999; box-shadow: 0 0 20px rgba(0,128,0,0.5);'>
+    <div id='popup' style='position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,128,0,0.9); color: white; padding: 15px 25px; border-radius: 12px; font-weight: bold; z-index: 9999; text-align:center;'>
         ✅ {$success}
-        <a href='login.php' class='btn' style='display:block; margin-top:10px; padding:10px; background:#00e676; color:#020c1b; text-decoration:none; border-radius:5px;'>Go to Login</a>
+        <button onclick=\"window.location.href='login.php'\" style='margin-top:10px; padding:8px 15px; background:#00e676; border:none; color:#020c1b; font-weight:bold; border-radius:5px; cursor:pointer;'>
+            Go to Login
+        </button>
     </div>
     ";
 }
