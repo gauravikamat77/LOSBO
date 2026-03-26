@@ -4,7 +4,7 @@ include("../config/database.php");
 
 $provider_id = $_SESSION['user_id'];
 
-// Use your specific table (e.g., 'users' or 'providers')
+// FETCH ALL FIELDS
 $stmt = $conn->prepare("SELECT 
     p.id AS provider_id,
     p.service_type,
@@ -12,10 +12,17 @@ $stmt = $conn->prepare("SELECT
     u.name,
     u.email,
     u.phone,
-    u.profile_image
+    u.profile_image,
+    u.gender,
+    u.language,
+    u.dob,
+    u.city,
+    u.state,
+    u.pincode
 FROM providers p
 JOIN users u ON p.user_id = u.id
 WHERE p.user_id = ?");
+
 $stmt->bind_param("i", $provider_id);
 $stmt->execute();
 $provider = $stmt->get_result()->fetch_assoc();
@@ -28,61 +35,83 @@ $current_img = !empty($provider['profile_image']) ? $provider['profile_image'] :
 
 <div class="page-wrapper" style="flex-direction: column; align-items: center; padding-top: 40px; padding-bottom: 40px;">
 
-    <div class="glass-card" style="max-width: 550px; width: 95%; padding: 40px;">
+<div class="glass-card" style="max-width: 550px; width: 95%; padding: 40px;">
         
-        <div style="text-align: center; margin-bottom: 30px;">
-            <h2 style="margin: 0; color: white;">Edit Business Profile</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Manage your professional details and expertise</p>
-        </div>
+<div style="text-align: center; margin-bottom: 30px;">
+<h2>Edit Business Profile</h2>
+</div>
 
-        <form action="update_profile.php" method="POST" enctype="multipart/form-data" class="pro-edit-form">
-            
-            <div class="pro-image-upload">
-                <div class="preview-ring">
-                    <img src="../uploads/profiles/<?php echo $current_img; ?>" id="proPreview">
-                    <label for="proFileInput" class="camera-btn">📷</label>
-                </div>
-                <input type="file" name="profile_image" id="proFileInput" hidden accept="image/*" onchange="showPreview(this)">
-                <p style="font-size: 0.7rem; color: var(--accent-blue); margin-top: 10px; font-weight: bold;">UPDATE PHOTO</p>
-            </div>
+<form action="update_profile.php" method="POST" enctype="multipart/form-data">
 
-            <div class="input-tile">
-                <label>Business name</label>
-                <input type="text" name="name" value="<?php echo htmlspecialchars($provider['name']); ?>" required>
-            </div>
+<!-- IMAGE -->
+<div class="pro-image-upload">
+<div class="preview-ring">
+<img src="../uploads/profiles/<?php echo $current_img; ?>" id="proPreview">
+<label for="proFileInput" class="camera-btn">📷</label>
+</div>
+<input type="file" name="profile_image" id="proFileInput" hidden onchange="showPreview(this)">
+</div>
 
-            <div class="input-tile">
-                <label>Professional Email</label>
-                <input type="email" name="email" value="<?php echo htmlspecialchars($provider['email']); ?>" required>
-            </div>
+<br>
 
-            <div class="input-tile">
-                <label>Contact Number</label>
-                <input type="text" name="phone" value="<?php echo htmlspecialchars($provider['phone']); ?>">
-            </div>
+<!-- BASIC -->
+<input type="text" name="name" value="<?php echo htmlspecialchars($provider['name']); ?>" placeholder="Name" required>
+<br><br>
 
-            <div class="input-tile">
-                <label>Service Category</label>
-                <input type="text" name="service" value="<?php echo htmlspecialchars($provider['service_type']); ?>" placeholder="e.g. Electrician, Plumber" >
-            </div>
+<input type="email" name="email" value="<?php echo htmlspecialchars($provider['email']); ?>" placeholder="Email" required>
+<br><br>
 
-            <div style="margin-top: 30px;">
-                <button type="submit" class="btn" style="width: 100%;">Apply Changes</button>
-                <a href="profile.php" style="display: block; text-align: center; margin-top: 15px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem;">Discard and Exit</a>
-            </div>
+<input type="text" name="phone" value="<?php echo htmlspecialchars($provider['phone']); ?>" placeholder="Phone">
+<br><br>
 
-        </form>
-    </div>
+<input type="text" name="service" value="<?php echo htmlspecialchars($provider['service_type']); ?>" placeholder="Service">
+<br><br>
+
+<!-- NEW FIELDS -->
+<select name="gender">
+<option value="">Gender</option>
+<option value="Male" <?php if($provider['gender']=="Male") echo "selected"; ?>>Male</option>
+<option value="Female" <?php if($provider['gender']=="Female") echo "selected"; ?>>Female</option>
+<option value="Other" <?php if($provider['gender']=="Other") echo "selected"; ?>>Other</option>
+</select>
+<br><br>
+
+<input type="text" name="language" value="<?php echo htmlspecialchars($provider['language']); ?>" placeholder="Language">
+<br><br>
+
+<input type="date" name="dob" value="<?php echo $provider['dob']; ?>">
+<br><br>
+
+<input type="text" name="city" value="<?php echo htmlspecialchars($provider['city']); ?>" placeholder="City">
+<br><br>
+
+<input type="text" name="state" value="<?php echo htmlspecialchars($provider['state']); ?>" placeholder="State">
+<br><br>
+
+<input type="text" name="pincode" value="<?php echo htmlspecialchars($provider['pincode']); ?>" placeholder="Pincode">
+<br><br>
+
+<!-- BUTTON -->
+<button class="btn" style="margin-top:20px; width:100%;">Update Profile</button>
+
+<br><br>
+
+<a href="profile.php" style="display:block; text-align:center; color: var(--text-muted); text-decoration:none;">
+Cancel
+</a>
+
+</form>
+</div>
 </div>
 
 <script>
-function showPreview(input) {
-    if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('proPreview').src = e.target.result;
-        }
-        reader.readAsDataURL(input.files[0]);
-    }
+function showPreview(input){
+if(input.files && input.files[0]){
+let reader = new FileReader();
+reader.onload = function(e){
+document.getElementById('proPreview').src = e.target.result;
+}
+reader.readAsDataURL(input.files[0]);
+}
 }
 </script>
