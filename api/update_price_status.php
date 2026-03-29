@@ -57,10 +57,7 @@ $message = ($action == "accept")
     : "Customer rejected your price";
 
 // ✅ STEP 4: Insert notification
-$insert = $conn->prepare("
-    INSERT INTO notifications (sender_id, receiver_id, message, booking_id) 
-    VALUES (?, ?, ?, ?)
-");
+$insert = $conn->prepare("INSERT INTO notifications (sender_id, receiver_id, message, booking_id) VALUES (?, ?, ?, ?)");
 
 $insert->bind_param("iisi", $customer_id, $provider_user_id, $message, $booking_id);
 
