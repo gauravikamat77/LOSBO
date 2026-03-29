@@ -42,10 +42,23 @@ $stmt = $conn->prepare("UPDATE bookings SET status=? WHERE id=?");
 $stmt->bind_param("si", $new_status, $booking_id);
 $stmt->execute();
 
+// get customer_id first
+$res = mysqli_query($conn, "SELECT customer_id FROM bookings WHERE id='$booking_id'");
+$row = mysqli_fetch_assoc($res);
+$customer_id = $row['customer_id'];
+
+
+
+
+
 // Redirect
 if($action === 'accept'){
+    $message = 'Your booking was accepted';
+    mysqli_query($conn, "INSERT INTO notifications (sender_id, receiver_id, message, booking_id) VALUES ('$provider_user_id', '$customer_id', '$message', '$booking_id')");
     header("Location: schedule.php");
 }else{
+    $message = 'Your booking was rejected';
+    mysqli_query($conn, "INSERT INTO notifications (sender_id, receiver_id, message, booking_id) VALUES ('$provider_user_id', '$customer_id', '$message', '$booking_id')");
     header("Location: requests.php?msg=Booking rejected successfully");
 }
 exit();

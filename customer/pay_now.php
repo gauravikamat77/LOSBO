@@ -1,40 +1,70 @@
 <?php
-include("../config/session_check.php");
 include("../config/database.php");
+include("../config/session_check.php");
 
-$customer_id = $_SESSION['user_id'] ?? 0;
-if(!$customer_id){
-    die("You must be logged in.");
+// ✅ Get booking_id (from POST or GET depending on your form)
+if (isset($_POST['booking_id'])) {
+    $booking_id = $_POST['booking_id'];
+} elseif (isset($_GET['booking_id'])) {
+    $booking_id = $_GET['booking_id'];
+} else {
+    die("Booking ID missing");
 }
 
-$booking_id = $_GET['booking_id'] ?? 0;
-if(!$booking_id){
-    die("Invalid booking ID.");
-}
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-// Fetch booking to confirm it belongs to this customer
-$stmt = $conn->prepare("SELECT * FROM bookings WHERE id=? AND customer_id=?");
-$stmt->bind_param("ii", $booking_id, $customer_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if($result->num_rows == 0){
-    die("Booking not found.");
-}
-
-$booking = $result->fetch_assoc();
-
-// Simulate payment process (here you could integrate PayPal, Razorpay, Stripe, etc.)
-if($_SERVER['REQUEST_METHOD'] === 'POST'){
-    // Update booking as paid
+    // ✅ STEP 1: Update booking as paid
     $stmt2 = $conn->prepare("UPDATE bookings SET payment_status='paid' WHERE id=?");
     $stmt2->bind_param("i", $booking_id);
-    if($stmt2->execute()){
-        header("Location: payment_success.php?booking_id=$booking_id");
-        exit;
-    } else {
-        die("Failed to update payment: ".$conn->error);
+
+    if (!$stmt2->execute()) {
+        die("Failed to update payment: " . $stmt2->error);
     }
+
+    // ✅ STEP 2: Get provider_user_id using JOIN
+    $getUser = $conn->prepare("
+        SELECT p.user_id 
+        FROM providers p
+        JOIN bookings b ON b.provider_id = p.id
+        WHERE b.id = ?
+    ");
+
+    $getUser->bind_param("i", $booking_id);
+
+    if (!$getUser->execute()) {
+        die("Fetch failed: " . $getUser->error);
+    }
+
+    $result = $getUser->get_result();
+    $row = $result->fetch_assoc();
+
+    if (!$row) {
+        die("Provider not found");
+    }
+
+    $provider_user_id = $row['user_id'];
+
+    // ✅ STEP 3: Customer ID (sender)
+    $customer_id = $_SESSION['user_id'];
+
+    // ✅ STEP 4: Message
+    $message = "Payment completed for your work. Thank you!";
+
+    // ✅ STEP 5: Insert notification
+    $insert = $conn->prepare("
+        INSERT INTO notifications (sender_id, receiver_id, message, booking_id) 
+        VALUES (?, ?, ?, ?)
+    ");
+
+    $insert->bind_param("iisi", $customer_id, $provider_user_id, $message, $booking_id);
+
+    if (!$insert->execute()) {
+        die("Insert failed: " . $insert->error);
+    }
+
+    // ✅ Redirect after success
+    header("Location: payment_success.php?booking_id=" . $booking_id);
+    exit;
 }
 ?>
 

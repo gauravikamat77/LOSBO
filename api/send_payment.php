@@ -72,6 +72,13 @@ if (!$stmt3->execute()) {
 }
 
 // SUCCESS
+$message = "Price has been sent for your booking";
+// get customer_id first
+$res = mysqli_query($conn, "SELECT customer_id FROM bookings WHERE id='$booking_id'");
+$row = mysqli_fetch_assoc($res);
+$customer_id = $row['customer_id'];
+mysqli_query($conn, "INSERT INTO notifications (sender_id, receiver_id, message, booking_id) VALUES ('$provider_user_id', '$customer_id', '$message', '$booking_id')");
+
 header("Location: sendpayment_success.php?booking_id=".$booking_id);
 exit();
 ?>

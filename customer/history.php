@@ -129,17 +129,61 @@ border:1px solid rgba(255,255,255,0.1);
 <p><b>Address:</b> <?php echo htmlspecialchars($row['address'] ?? "Not provided"); ?></p>
 <p><b>Description:</b> <?php echo htmlspecialchars($row['description'] ?? "No description"); ?></p>
 
-<!-- PAYMENT SECTION -->
-<?php if($status == "completed" && $price_status == "sent" && $payment_status != "paid"): ?>
+<!-- 🔥 PRICE ACCEPT / REJECT SECTION -->
+<?php if($status == "accepted" && $price_status == "sent"): ?>
+<p style="color:#b388ff;font-weight:600;margin-top:10px;">
+Service Accepted. Provider sent price: ₹<?php echo $row['price']; ?>
+</p>
+
+<div style="display:flex; gap:10px; margin-top:10px;">
+    
+    <!-- Accept -->
+    <a href="../api/update_price_status.php?booking_id=<?php echo $row['id']; ?>&action=accept" 
+       class="btn"
+       style="background:#00e676; padding:10px 20px;">
+       Accept
+    </a>
+
+    <!-- Reject -->
+    <a href="../api/update_price_status.php?booking_id=<?php echo $row['id']; ?>&action=reject" 
+       class="btn"
+       style="background:#ff3d00; padding:10px 20px;">
+       Reject
+    </a>
+
+</div>
+<?php endif; ?>
+
+
+<!-- 🔥 SHOW AFTER ACCEPT -->
+<?php if($price_status == "accepted" && $payment_status != "paid"): ?>
+<p style="color:#00e676;margin-top:10px;">
+✔ Price accepted. Please proceed to payment.
+</p>
+<?php endif; ?>
+
+
+<!-- 🔥 SHOW IF REJECTED -->
+<?php if($price_status == "rejected"): ?>
+<p style="color:#ff3d00;margin-top:10px;">
+❌ You rejected the provider's price.
+</p>
+<?php endif; ?>
+
+
+<!-- 🔥 PAYMENT SECTION (unchanged but shifted logically) -->
+<?php if($status == "completed" && $price_status == "accepted" && $payment_status != "paid"): ?>
 <p style="color:#b388ff;font-weight:600;margin-top:10px;">
 Service Completed. Payment Requested: ₹<?php echo $row['price']; ?>
 </p>
+
 <a href="pay_now.php?booking_id=<?php echo $row['id']; ?>" 
 class="btn"
 style="margin-top:10px;width:auto;padding:10px 25px;">
 Pay Now
 </a>
 <?php endif; ?>
+
 
 <?php if($payment_status == "paid"): ?>
 <p style="color:#00e676;margin-top:10px;">
