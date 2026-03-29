@@ -251,3 +251,16 @@ CREATE TABLE notifications (
     is_read TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+
+ALTER TABLE bookings
+ADD CONSTRAINT fk_booking_customer
+FOREIGN KEY (customer_id) REFERENCES users(id)
+ON DELETE CASCADE
+ON UPDATE CASCADE;
+
+ALTER TABLE bookings
+ADD CONSTRAINT fk_booking_provider
+FOREIGN KEY (provider_id) REFERENCES providers(id)
+ON DELETE CASCADE
+ON UPDATE CASCADE;
