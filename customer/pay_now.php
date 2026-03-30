@@ -66,6 +66,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header("Location: payment_success.php?booking_id=" . $booking_id);
     exit;
 }
+
+// ✅ Get booking_id
+if (!isset($_GET['booking_id'])) {
+    die("Booking ID missing");
+}
+
+$booking_id = $_GET['booking_id'];
+
+// ✅ Fetch booking details
+$stmt = $conn->prepare("SELECT * FROM bookings WHERE id = ?");
+$stmt->bind_param("i", $booking_id);
+
+if (!$stmt->execute()) {
+    die("Fetch failed: " . $stmt->error);
+}
+
+$result = $stmt->get_result();
+$booking = $result->fetch_assoc();
+
+if (!$booking) {
+    die("Booking not found");
+}
 ?>
 
 <link rel="stylesheet" href="../assets/css/style.css">
